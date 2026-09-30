@@ -6,13 +6,13 @@ const ESLINT_DISABLE_DIRECTIVE_TYPES = new Set([
 ]);
 
 function getEslintDisableDirectives(context) {
-	const {directives} = context.sourceCode.getDisableDirectives();
+	const directives = context.sourceCode.getDisableDirectives?.()?.directives ?? [];
 	return directives.filter(({type}) => ESLINT_DISABLE_DIRECTIVE_TYPES.has(type));
 }
 
 function isEslintDisableOrEnableDirective(context, comment) {
-	const {directives} = context.sourceCode.getDisableDirectives();
-	return directives.some(directive => directive.node === comment);
+	const directives = context.sourceCode.getDisableDirectives?.()?.directives;
+	return directives?.some(directive => directive.node === comment) ?? false;
 }
 
 export {

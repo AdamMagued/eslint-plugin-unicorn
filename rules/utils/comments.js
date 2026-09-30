@@ -46,13 +46,29 @@ Check whether any comment falls entirely within the given range.
 
 @param {import('eslint').Rule.RuleContext} context
 @param {Array<number>} range
+@param {((comment: object) => boolean) | {ignore?: (comment: object) => boolean, filter?: (comment: object) => boolean}} [filterOrOptions]
 @returns {boolean}
 */
-const hasCommentInRange = (context, [start, end]) => {
+const hasCommentInRange = (context, [start, end], filterOrOptions) => {
 	const {sourceCode} = context;
-	return sourceCode.getAllComments().some(comment => {
+	const filter = typeof filterOrOptions === 'function' ? filterOrOptions : filterOrOptions?.filter;
+	const ignore = typeof filterOrOptions === 'object' ? filterOrOptions?.ignore : undefined;
+
+	return getComments(context).some(comment => {
 		const [commentStart, commentEnd] = sourceCode.getRange(comment);
-		return commentStart >= start && commentEnd <= end;
+		if (commentStart < start || commentEnd > end) {
+			return false;
+		}
+
+		if (filter && !filter(comment)) {
+			return false;
+		}
+
+		if (ignore && ignore(comment)) {
+			return false;
+		}
+
+		return true;
 	});
 };
 

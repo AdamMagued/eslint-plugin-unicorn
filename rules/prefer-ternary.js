@@ -11,6 +11,7 @@ import {
 	getNextNode,
 	getLastTrailingCommentOnSameLine,
 	hasCommentInRange,
+	isEslintDisableOrEnableDirective,
 } from './utils/index.js';
 
 const messageId = 'prefer-ternary';
@@ -113,6 +114,7 @@ const isMergeableAssignmentExpression = (consequent, alternate, visitorKeys) =>
 const create = context => {
 	const isOnlySingleLine = context.options[0] === 'only-single-line';
 	const {sourceCode} = context;
+	const isDecisionComment = comment => !isEslintDisableOrEnableDirective(context, comment);
 
 	const getText = node => {
 		let text = getParenthesizedText(node, context);
@@ -228,7 +230,7 @@ const create = context => {
 		}
 
 		// Preserve commented decisions as statements, without reporting.
-		if (hasCommentInRange(context, [sourceCode.getRange(previousNode)[0], sourceCode.getRange(node)[1]])) {
+		if (hasCommentInRange(context, [sourceCode.getRange(previousNode)[0], sourceCode.getRange(node)[1]], isDecisionComment)) {
 			return;
 		}
 
@@ -295,10 +297,12 @@ const create = context => {
 			? [sourceCode.getRange(node)[0], sourceCode.getRange(alternateNode)[1]]
 			: sourceCode.getRange(node);
 
+		const trailingComment = isFlatReturn && getLastTrailingCommentOnSameLine(context, alternateNode);
+
 		// Preserve commented decisions as statements, without reporting.
 		if (
-			hasCommentInRange(context, replacementRange)
-			|| (isFlatReturn && getLastTrailingCommentOnSameLine(context, alternateNode))
+			hasCommentInRange(context, replacementRange, isDecisionComment)
+			|| (trailingComment && isDecisionComment(trailingComment))
 		) {
 			return;
 		}

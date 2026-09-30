@@ -3,6 +3,7 @@ import {getStaticStringValue} from '../../rules/ast/index.js';
 import {
 	canTokensBeAdjacent,
 	getPrecedence,
+	hasCommentInRange,
 	hasUnsafeArrowConversionReference,
 	isLengthOrSizeMemberExpression,
 	isTypeScriptExpressionWrapper,
@@ -263,4 +264,23 @@ test('isLengthOf and isLengthMinusOneOf detect a `.length` access on a given obj
 	t.false(isLengthMinusOneOfCode('foo.method(foo.length + 1)'));
 	t.false(isLengthMinusOneOfCode('foo.method(bar.length - 1)'));
 	t.false(isLengthMinusOneOfCode('foo.method(foo.length)'));
+});
+
+test('hasCommentInRange checks comments with optional filter and ignore', t => {
+	const sourceCode = {
+		getAllComments: () => [
+			{type: 'Line', value: ' regular comment', range: [10, 30]},
+			{type: 'Line', value: ' eslint-disable-next-line foo', range: [35, 65]},
+		],
+		getRange: node => node.range,
+	};
+	const context = {sourceCode};
+
+	t.true(hasCommentInRange(context, [0, 100]));
+	t.true(hasCommentInRange(context, [10, 30]));
+	t.false(hasCommentInRange(context, [15, 25]));
+	t.true(hasCommentInRange(context, [0, 100], comment => comment.value.includes('regular')));
+	t.false(hasCommentInRange(context, [0, 100], comment => comment.value.includes('nonexistent')));
+	t.false(hasCommentInRange(context, [35, 65], {ignore: comment => comment.value.includes('eslint-disable')}));
+	t.true(hasCommentInRange(context, [0, 100], {ignore: comment => comment.value.includes('eslint-disable')}));
 });

@@ -333,6 +333,39 @@ test({
 	],
 	invalid: [
 		{
+			code: outdent`
+				function unicorn() {
+					if (test) {
+						return a;
+					}
+					// eslint-disable-next-line no-warning-comments
+					return b;
+				}
+			`,
+			output: outdent`
+				function unicorn() {
+					return test ? a : b;
+				}
+			`,
+			errors,
+		},
+		{
+			code: outdent`
+				function unicorn() {
+					if (test) {
+						return a;
+					}
+					return b; // eslint-disable-line no-warning-comments
+				}
+			`,
+			output: outdent`
+				function unicorn() {
+					return test ? a : b; // eslint-disable-line no-warning-comments
+				}
+			`,
+			errors,
+		},
+		{
 			code: 'function unicorn() { if (test) { return a; } return b; }',
 			output: 'function unicorn() { return test ? a : b; }',
 			errors,
@@ -1269,6 +1302,14 @@ test({
 				x = b;
 			}
 		`,
+		// Disabled via directive (RuleTester verifies directive is used and suppresses problem)
+		outdent`
+			let x = a;
+			// eslint-disable-next-line rule-to-test/prefer-ternary
+			if (test) {
+				x = b;
+			}
+		`,
 	],
 	invalid: [
 		{
@@ -1489,5 +1530,31 @@ test({
 			`),
 			languageOptions: {parser: parsers.typescript},
 		},
+		// Directive comments are not treated as explanatory comments
+		{
+			code: outdent`
+				let x = a;
+				// eslint-disable-next-line no-warning-comments
+				if (test) {
+					x = b;
+				}
+			`,
+			errors: errorsWithSuggestion(outdent`
+				const x = test ? b : a;
+			`),
+		},
+		{
+			code: outdent`
+				let x = a;
+				/* eslint-disable no-warning-comments */
+				if (test) {
+					x = b;
+				}
+			`,
+			errors: errorsWithSuggestion(outdent`
+				const x = test ? b : a;
+			`),
+		},
 	],
 });
+

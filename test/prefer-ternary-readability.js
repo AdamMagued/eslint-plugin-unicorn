@@ -199,3 +199,57 @@ testRule({
 		},
 	],
 });
+
+test('does not trigger unused eslint-disable directive warning when disabled', t => {
+	const linter = new Linter();
+	const cases = [
+		outdent`
+			let x = 1;
+			// eslint-disable-next-line unicorn/prefer-ternary
+			if (test) {
+				x = 2;
+			}
+		`,
+		outdent`
+			let x = 1;
+			/* eslint-disable-next-line unicorn/prefer-ternary */
+			if (test) {
+				x = 2;
+			}
+		`,
+		outdent`
+			function foo() {
+				// eslint-disable-next-line unicorn/prefer-ternary
+				if (test) {
+					return a;
+				}
+				return b;
+			}
+		`,
+		outdent`
+			function foo() {
+				// eslint-disable-next-line unicorn/prefer-ternary
+				if (test) {
+					a = 1;
+				} else {
+					a = 2;
+				}
+			}
+		`,
+	];
+
+	for (const code of cases) {
+		const messages = linter.verify(code, {
+			plugins: {unicorn},
+			rules: {
+				'unicorn/prefer-ternary': 'error',
+			},
+			linterOptions: {
+				reportUnusedDisableDirectives: 'error',
+			},
+		});
+
+		t.deepEqual(messages, []);
+	}
+});
+
